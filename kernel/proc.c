@@ -5,7 +5,6 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
-#include "pstat.h"
 
 struct cpu cpus[NCPU];
 
@@ -477,6 +476,43 @@ kwait2(uint64 addr, uint64 ru)
     sleep();
     acquire(&wait_lock);
   }
+}
+
+// Copy a struct pstat for each process in use to the user
+// array at addr, which must have room for NPROC entries.
+// Return the number of processes, or -1 on error.
+int
+kgetprocs(uint64 addr)
+{
+  struct proc *p;
+  struct proc *me = myproc();
+  struct pstat ps;
+  int n = 0;
+
+  for (p = proc; p < &proc[NPROC]; p++) {
+    // wait_lock keeps p->parent from being freed while we read its pid.
+    acquire(&wait_lock);
+    acquire(&p->lock);
+    if (p->state == UNUSED) {
+      release(&p->lock);
+      release(&wait_lock);
+      continue;
+    }
+    ps.pid = p->pid;
+    ps.state = p->state;
+    ps.size = p->sz;
+    ps.ppid = p->parent ? p->parent->pid : 0;
+    safestrcpy(ps.name, p->name, sizeof(ps.name));
+    release(&p->lock);
+    release(&wait_lock);
+
+    // copyout() may fault in a lazily allocated page, so don't hold locks.
+    if (copyout(me->pagetable, me->sz, addr + n * sizeof(ps), (char *)&ps,
+                sizeof(ps)) < 0)
+      return -1;
+    n++;
+  }
+  return n;
 }
 
 // Per-CPU process scheduler.

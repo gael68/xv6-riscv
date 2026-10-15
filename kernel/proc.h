@@ -76,7 +76,8 @@ struct trapframe {
   /* 280 */ uint64 t6;
 };
 
-enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+// enum procstate is in pstat.h so that user programs can see it.
+#include "pstat.h"
 
 // Per-process state
 struct proc {

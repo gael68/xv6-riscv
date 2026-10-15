@@ -46,6 +46,14 @@ sys_wait2(void)
 }
 
 uint64
+sys_getprocs(void)
+{
+  uint64 addr;
+  argaddr(0, &addr);
+  return kgetprocs(addr);
+}
+
+uint64
 sys_sbrk(void)
 {
   uint64 addr;
