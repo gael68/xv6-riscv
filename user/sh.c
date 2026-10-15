@@ -3,6 +3,7 @@
 #include "kernel/types.h"
 #include "user/user.h"
 #include "kernel/fcntl.h"
+#include "kernel/param.h"
 
 // Parsed command representation
 #define EXEC  1
@@ -142,6 +143,56 @@ getcmd(char *buf, int nbuf)
   return 0;
 }
 
+extern char whitespace[];
+
+// Run the getpriority and setpriority builtins. Like cd, they must
+// run in the shell itself: a child's priority change would be lost
+// when it exits. Children of the shell inherit its priority.
+// Return 1 if cmd was one of them, 0 otherwise.
+int
+prioritycmd(char *cmd)
+{
+  char line[100], *argv[3], *s;
+  int argc;
+
+  strcpy(line, cmd);
+  argc = 0;
+  for (s = line; *s;) {
+    while (*s && strchr(whitespace, *s))
+      s++;
+    if (*s == 0)
+      break;
+    if (argc < 3)
+      argv[argc] = s;
+    argc++;
+    while (*s && !strchr(whitespace, *s))
+      s++;
+    if (*s)
+      *s++ = 0;
+  }
+
+  if (argc > 0 && strcmp(argv[0], "getpriority") == 0) {
+    if (argc != 1)
+      fprintf(2, "usage: getpriority\n");
+    else
+      printf("%d\n", getpriority());
+    return 1;
+  }
+  if (argc > 0 && strcmp(argv[0], "setpriority") == 0) {
+    if (argc != 2) {
+      fprintf(2, "usage: setpriority priority\n");
+      return 1;
+    }
+    for (s = argv[1]; *s >= '0' && *s <= '9'; s++)
+      ;
+    if (s == argv[1] || *s != 0 || setpriority(atoi(argv[1])) < 0)
+      fprintf(2, "setpriority: priority must be a number from 0 to %d\n",
+              MAXPRIORITY);
+    return 1;
+  }
+  return 0;
+}
+
 int
 main(void)
 {
@@ -168,7 +219,7 @@ main(void)
       cmd[strlen(cmd) - 1] = 0; // chop \n
       if (chdir(cmd + 3) < 0)
         fprintf(2, "cannot cd %s\n", cmd + 3);
-    } else {
+    } else if (!prioritycmd(cmd)) {
       if (fork1() == 0)
         runcmd(parsecmd(cmd));
       wait(0);
