@@ -21,3 +21,11 @@
 #ifndef SCHEDPOLICY
 #define SCHEDPOLICY SCHED_PRIO
 #endif
+
+// Aging for SCHED_PRIO: a RUNNABLE process gains one level of effective
+// priority for every AGINGTICKS ticks it waits, up to MAXEFFPRIORITY.
+#ifndef AGING
+#define AGING       1                 // 0 disables aging
+#endif
+#define AGINGTICKS  1
+#define MAXEFFPRIORITY 99

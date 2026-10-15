@@ -81,6 +81,9 @@ CFLAGS += -I.
 ifdef SCHEDPOLICY
 CFLAGS += -DSCHEDPOLICY=$(SCHEDPOLICY)
 endif
+ifdef AGING
+CFLAGS += -DAGING=$(AGING)
+endif
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 
 # Disable PIE when possible (for Ubuntu 16.10 toolchain)

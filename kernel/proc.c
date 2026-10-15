@@ -482,6 +482,22 @@ kwait2(uint64 addr, uint64 ru)
   }
 }
 
+// Priority the scheduler uses for p: its base priority plus
+// aging credit for the time it has been waiting to run.
+// Caller must hold p->lock.
+static int
+effpriority(struct proc *p, uint now)
+{
+  uint age;
+
+  if (!AGING || p->state != RUNNABLE)
+    return p->priority;
+  age = (now - p->readytime) / AGINGTICKS;
+  if (age >= MAXEFFPRIORITY - p->priority)
+    return MAXEFFPRIORITY;
+  return p->priority + age;
+}
+
 // Copy a struct pstat for each process in use to the user
 // array at addr, which must have room for NPROC entries.
 // Return the number of processes, or -1 on error.
@@ -507,6 +523,7 @@ kgetprocs(uint64 addr)
     ps.size = p->sz;
     ps.ppid = p->parent ? p->parent->pid : 0;
     ps.priority = p->priority;
+    ps.effpriority = effpriority(p, ticks);
     ps.readytime = p->readytime;
     ps.cputime = p->cputime;
     safestrcpy(ps.name, p->name, sizeof(ps.name));
@@ -548,16 +565,23 @@ scheduler(void)
     int found = 0;
 #if SCHEDPOLICY == SCHED_PRIO
     struct proc *best = 0;
+    int prio, bestprio = 0;
+    uint bestready = 0;
+    uint now = ticks;
 
     for (p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
-      // Among equal priorities, pick the one that has waited longest,
-      // so they take turns as under round robin.
-      if (p->state == RUNNABLE &&
-          (best == 0 || p->priority > best->priority ||
-           (p->priority == best->priority &&
-            p->readytime < best->readytime)))
-        best = p;
+      if (p->state == RUNNABLE) {
+        prio = effpriority(p, now);
+        // Among equal priorities, pick the one that has waited longest,
+        // so they take turns as under round robin.
+        if (best == 0 || prio > bestprio ||
+            (prio == bestprio && p->readytime < bestready)) {
+          best = p;
+          bestprio = prio;
+          bestready = p->readytime;
+        }
+      }
       release(&p->lock);
     }
 
