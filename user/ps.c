@@ -9,6 +9,7 @@ main(int argc, char **argv)
   struct pstat uproc[NPROC];
   int nprocs;
   int i;
+  uint now, age;
   char *state;
   static char *states[] = {
     [USED]      "used    ",
@@ -24,11 +25,15 @@ main(int argc, char **argv)
     exit(1);
   }
 
-  printf("pid\tstate\t\tsize\tprio\tppid\tname\n");
+  now = uptime();
+
+  printf("pid\tstate\t\tsize\tage\tprio\tppid\tname\n");
   for (i=0; i<nprocs; i++) {
     state = states[uproc[i].state];
-    printf("%d\t%s\t%ld\t%d\t%d\t%s\n", uproc[i].pid, state,
-                   uproc[i].size, uproc[i].priority, uproc[i].ppid,
+    // Age is how long a process has been waiting to run.
+    age = uproc[i].state == RUNNABLE ? now - uproc[i].readytime : 0;
+    printf("%d\t%s\t%ld\t%d\t%d\t%d\t%s\n", uproc[i].pid, state,
+                   uproc[i].size, age, uproc[i].priority, uproc[i].ppid,
                    uproc[i].name);
   }
 

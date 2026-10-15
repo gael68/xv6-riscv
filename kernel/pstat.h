@@ -13,4 +13,5 @@ struct pstat {
   int ppid;             // Parent process ID
   char name[16];        // Process name
   int priority;         // Scheduling priority
+  uint readytime;       // ticks when it last became RUNNABLE
 };
