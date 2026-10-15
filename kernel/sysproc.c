@@ -71,6 +71,8 @@ sys_setpriority(void)
   acquire(&p->lock);
   p->priority = n;
   release(&p->lock);
+  // Let a process that now outranks us run right away.
+  yield();
   return 0;
 }
 

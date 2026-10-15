@@ -508,6 +508,7 @@ kgetprocs(uint64 addr)
     ps.ppid = p->parent ? p->parent->pid : 0;
     ps.priority = p->priority;
     ps.readytime = p->readytime;
+    ps.cputime = p->cputime;
     safestrcpy(ps.name, p->name, sizeof(ps.name));
     release(&p->lock);
     release(&wait_lock);
@@ -545,6 +546,36 @@ scheduler(void)
     intr_off();
 
     int found = 0;
+#if SCHEDPOLICY == SCHED_PRIO
+    struct proc *best = 0;
+
+    for (p = proc; p < &proc[NPROC]; p++) {
+      acquire(&p->lock);
+      // Among equal priorities, pick the one that has waited longest,
+      // so they take turns as under round robin.
+      if (p->state == RUNNABLE &&
+          (best == 0 || p->priority > best->priority ||
+           (p->priority == best->priority &&
+            p->readytime < best->readytime)))
+        best = p;
+      release(&p->lock);
+    }
+
+    if (best) {
+      p = best;
+      found = 1;
+      acquire(&p->lock);
+      // Another CPU may have taken it since the scan above.
+      if (p->state == RUNNABLE) {
+        p->state = RUNNING;
+        c->proc = p;
+        swtch(&c->context, &p->context);
+        mycpu()->intena = 0;
+        c->proc = 0;
+      }
+      release(&p->lock);
+    }
+#else
     for (p = proc; p < &proc[NPROC]; p++) {
       acquire(&p->lock);
       if (p->state == RUNNABLE) {
@@ -565,6 +596,7 @@ scheduler(void)
       }
       release(&p->lock);
     }
+#endif
     if (found == 0) {
       // nothing to run; stop running on this core until an interrupt.
       asm volatile("wfi");

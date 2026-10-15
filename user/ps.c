@@ -27,14 +27,14 @@ main(int argc, char **argv)
 
   now = uptime();
 
-  printf("pid\tstate\t\tsize\tage\tprio\tppid\tname\n");
+  printf("pid\tstate\t\tsize\tage\tprio\tcputime\tppid\tname\n");
   for (i=0; i<nprocs; i++) {
     state = states[uproc[i].state];
     // Age is how long a process has been waiting to run.
     age = uproc[i].state == RUNNABLE ? now - uproc[i].readytime : 0;
-    printf("%d\t%s\t%ld\t%d\t%d\t%d\t%s\n", uproc[i].pid, state,
-                   uproc[i].size, age, uproc[i].priority, uproc[i].ppid,
-                   uproc[i].name);
+    printf("%d\t%s\t%ld\t%d\t%d\t%d\t%d\t%s\n", uproc[i].pid, state,
+                   uproc[i].size, age, uproc[i].priority, uproc[i].cputime,
+                   uproc[i].ppid, uproc[i].name);
   }
 
   exit(0);

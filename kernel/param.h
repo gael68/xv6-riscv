@@ -13,3 +13,11 @@
 #define MAXPATH     128               // maximum file path name
 #define USERSTACK   1                 // user stack pages
 #define MAXPRIORITY 49                // highest priority setpriority() allows
+
+// Scheduling policy, chosen at compile time by setting SCHEDPOLICY.
+// "make SCHEDPOLICY=SCHED_RR" overrides it (after "make clean").
+#define SCHED_RR    0                 // round robin over RUNNABLE processes
+#define SCHED_PRIO  1                 // highest priority first
+#ifndef SCHEDPOLICY
+#define SCHEDPOLICY SCHED_PRIO
+#endif
