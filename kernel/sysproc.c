@@ -54,6 +54,27 @@ sys_getprocs(void)
 }
 
 uint64
+sys_getpriority(void)
+{
+  return myproc()->priority;
+}
+
+uint64
+sys_setpriority(void)
+{
+  int n;
+  struct proc *p = myproc();
+
+  argint(0, &n);
+  if (n < 0 || n > MAXPRIORITY)
+    return -1;
+  acquire(&p->lock);
+  p->priority = n;
+  release(&p->lock);
+  return 0;
+}
+
+uint64
 sys_sbrk(void)
 {
   uint64 addr;

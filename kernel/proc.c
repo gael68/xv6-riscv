@@ -125,6 +125,7 @@ found:
   p->pid = allocpid();
   p->state = USED;
   p->cputime = 0;
+  p->priority = 0;
 
   // Allocate a trapframe page.
   if ((p->trapframe = (struct trapframe *)kalloc()) == 0) {
@@ -289,6 +290,7 @@ kfork(void)
   np->cwd = idup(p->cwd);
 
   safestrcpy(np->name, p->name, sizeof(p->name));
+  np->priority = p->priority;
 
   pid = np->pid;
 
@@ -502,6 +504,7 @@ kgetprocs(uint64 addr)
     ps.state = p->state;
     ps.size = p->sz;
     ps.ppid = p->parent ? p->parent->pid : 0;
+    ps.priority = p->priority;
     safestrcpy(ps.name, p->name, sizeof(ps.name));
     release(&p->lock);
     release(&wait_lock);

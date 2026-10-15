@@ -11,6 +11,7 @@ main(int argc, char **argv)
   int i;
   char *state;
   static char *states[] = {
+    [USED]      "used    ",
     [SLEEPING]  "sleeping",
     [RUNNABLE]  "runnable",
     [RUNNING]   "running ",
@@ -18,14 +19,17 @@ main(int argc, char **argv)
   };
 
   nprocs = getprocs(uproc);
-  if (nprocs < 0)
-    exit(-1);
+  if (nprocs < 0) {
+    fprintf(2, "ps: getprocs failed\n");
+    exit(1);
+  }
 
-  printf("pid\tstate\t\tsize\tppid\tname\n");
+  printf("pid\tstate\t\tsize\tprio\tppid\tname\n");
   for (i=0; i<nprocs; i++) {
     state = states[uproc[i].state];
-    printf("%d\t%s\t%ld\t%d\t%s\n", uproc[i].pid, state,
-                   uproc[i].size, uproc[i].ppid, uproc[i].name);
+    printf("%d\t%s\t%ld\t%d\t%d\t%s\n", uproc[i].pid, state,
+                   uproc[i].size, uproc[i].priority, uproc[i].ppid,
+                   uproc[i].name);
   }
 
   exit(0);
